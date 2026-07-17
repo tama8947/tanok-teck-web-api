@@ -13,11 +13,10 @@ type LoginResponse struct {
 }
 
 type UserPublic struct {
-	ID          string `json:"id"`
-	Email       string `json:"email"`
-	Name        string `json:"name"`
-	Permissions string `json:"permissions"`
-	CreatedAt   string `json:"createdAt"`
+	ID          string   `json:"id"`
+	Email       string   `json:"email"`
+	Name        string   `json:"name"`
+	Permissions []string `json:"permissions"`
 }
 
 type AuthResponse struct {

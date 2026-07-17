@@ -3,8 +3,8 @@ package services
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
-	"html"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -24,11 +24,11 @@ func (s *Services) Login(ctx context.Context, email, password string) (string, *
 	}
 
 	var user models.UserPublic
-	var hashedPassword string
+	var hashedPassword, permissionsStr string
 	err := s.DB.QueryRow(ctx,
 		`SELECT id, email, COALESCE(name, ''), permissions, password FROM "User" WHERE email = $1`,
 		email,
-	).Scan(&user.ID, &user.Email, &user.Name, &user.Permissions, &hashedPassword)
+	).Scan(&user.ID, &user.Email, &user.Name, &permissionsStr, &hashedPassword)
 	if err != nil {
 		return "", nil, errors.New("invalid credentials")
 	}
@@ -36,6 +36,8 @@ func (s *Services) Login(ctx context.Context, email, password string) (string, *
 	if err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password)); err != nil {
 		return "", nil, errors.New("invalid credentials")
 	}
+
+	user.Permissions = parsePermissions(permissionsStr)
 
 	token, err := s.generateJWT(user.ID, user.Email)
 	if err != nil {
@@ -47,14 +49,34 @@ func (s *Services) Login(ctx context.Context, email, password string) (string, *
 
 func (s *Services) GetUserByID(ctx context.Context, userID string) (*models.UserPublic, error) {
 	var user models.UserPublic
+	var permissionsStr string
 	err := s.DB.QueryRow(ctx,
 		`SELECT id, email, COALESCE(name, ''), permissions FROM "User" WHERE id = $1`,
 		userID,
-	).Scan(&user.ID, &user.Email, &user.Name, &user.Permissions)
+	).Scan(&user.ID, &user.Email, &user.Name, &permissionsStr)
 	if err != nil {
 		return nil, err
 	}
+	user.Permissions = parsePermissions(permissionsStr)
 	return &user, nil
+}
+
+func parsePermissions(raw string) []string {
+	if raw == "" {
+		return nil
+	}
+	var perms []string
+	if err := json.Unmarshal([]byte(raw), &perms); err != nil {
+		var obj map[string]interface{}
+		if err2 := json.Unmarshal([]byte(raw), &obj); err2 == nil {
+			for k, v := range obj {
+				if b, ok := v.(bool); ok && b {
+					perms = append(perms, k)
+				}
+			}
+		}
+	}
+	return perms
 }
 
 func (s *Services) ValidateToken(tokenString string) (*authClaims, error) {
@@ -143,5 +165,5 @@ func containsDashboard(permissions string) bool {
 		len(permissions) > 16
 }
 
+var _ = json.RawMessage{}
 var _ = sql.NullString{}
-var _ = html.EscapeString

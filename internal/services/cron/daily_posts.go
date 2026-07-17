@@ -110,6 +110,7 @@ func RunDailyGeneration(ctx context.Context, svc *services.Services, opts RunDai
 	}
 
 	// Generate ES post
+	slog.Info("[cron] generating ES post", "locale", "es", "topic", topic.ES)
 	esContent, err := ai.GeneratePostContent(ctx, svc.Config, topic.ES, "es", "deepseek-chat")
 	if err != nil {
 		base.Status = "FAILED"
@@ -143,10 +144,13 @@ func RunDailyGeneration(ctx context.Context, svc *services.Services, opts RunDai
 	base.ESSlug = esSlug
 
 	// Generate EN post
+	slog.Info("[cron] ES post saved", "postId", esPostID, "slug", esSlug)
+
+	slog.Info("[cron] generating EN post", "locale", "en", "topic", topic.EN)
 	var enPostID, enSlug string
 	enContent, err := ai.GeneratePostContent(ctx, svc.Config, topic.EN, "en", "deepseek-chat")
 	if err != nil {
-		log.Printf("[daily-posts] EN generation failed: %v", err)
+		slog.Warn("[cron] EN generation failed", "error", err)
 		base.Error = fmt.Sprintf("EN generation failed: %v", err)
 	} else {
 		enSlug = ensureUniqueSlug(ctx, svc.DB, enContent.Slug, "en")
@@ -163,7 +167,10 @@ func RunDailyGeneration(ctx context.Context, svc *services.Services, opts RunDai
 			sql.NullString{String: "deepseek", Valid: true},
 		)
 		if err != nil {
-			log.Printf("[daily-posts] EN post insert: %v", err)
+			slog.Warn("[cron] EN post insert failed", "error", err)
+		}
+		if enPostID != "" {
+			slog.Info("[cron] EN post saved", "postId", enPostID, "slug", enSlug)
 		}
 		base.ENPostID = enPostID
 		base.ENSlug = enSlug
@@ -178,6 +185,7 @@ func RunDailyGeneration(ctx context.Context, svc *services.Services, opts RunDai
 
 	// Agent pipeline
 	if svc.Config.AgentPipelineEnabled {
+		slog.Info("[cron] running agent pipeline", "esPostId", esPostID, "enPostId", enPostID)
 		agentPipelineResult := runAgentPipeline(ctx, svc, map[string]string{"es": esPostID, "en": enPostID})
 		if agentPipelineResult != nil {
 			agentJSON, _ := json.Marshal(agentPipelineResult)
@@ -190,6 +198,7 @@ func RunDailyGeneration(ctx context.Context, svc *services.Services, opts RunDai
 
 	// IndexNow
 	if !opts.SkipIndexNow {
+		slog.Info("[cron] submitting to IndexNow", "esSlug", esSlug, "enSlug", enSlug)
 		urls := []string{postURL(svc.Config, "es", esSlug)}
 		if enSlug != "" {
 			urls = append(urls, postURL(svc.Config, "en", enSlug))
@@ -208,6 +217,12 @@ func RunDailyGeneration(ctx context.Context, svc *services.Services, opts RunDai
 
 	base.Status = "SUCCESS"
 	base.DurationMs = time.Since(start).Milliseconds()
+	slog.Info("[cron] daily-posts completed",
+		"slot", slot,
+		"esPostId", esPostID,
+		"enPostId", enPostID,
+		"durationMs", base.DurationMs,
+	)
 	recordCronSuccess(ctx, svc.DB, slot, esPostID, enPostID, opts.DryRun)
 	return base
 }

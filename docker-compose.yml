@@ -18,6 +18,8 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: tanok-api
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       redis-cache:
         condition: service_healthy

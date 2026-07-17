@@ -25,13 +25,13 @@ func (h *Handler) Login(c *gin.Context) {
 		return
 	}
 
-	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetSameSite(http.SameSiteNoneMode)
 	c.SetCookie(authCookieName, token, authCookieMaxAge, "/", h.Services.Config.CookieDomain, true, true)
 	c.JSON(http.StatusOK, models.LoginResponse{Success: true, User: user})
 }
 
 func (h *Handler) Logout(c *gin.Context) {
-	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetSameSite(http.SameSiteNoneMode)
 	c.SetCookie(authCookieName, "", -1, "/", h.Services.Config.CookieDomain, true, true)
 	c.JSON(http.StatusOK, gin.H{"success": true})
 }

@@ -26,6 +26,6 @@ COPY --from=builder /app/bin/api .
 
 USER appuser
 
-EXPOSE 8080
+EXPOSE 4733
 
 CMD ["./api"]

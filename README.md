@@ -71,7 +71,7 @@ La imagen se construye en multi-stage (golang:1.25 → alpine:3.21). El binario 
 Copiar `.env.example` a `.env` y completar:
 
 ```env
-PORT=8080
+PORT=4733
 GIN_MODE=release
 
 # Base de datos

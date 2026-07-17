@@ -22,7 +22,7 @@ services:
       redis-cache:
         condition: service_healthy
     environment:
-      PORT: "8080"
+      PORT: "4733"
       DATABASE_URL: "${DATABASE_URL}"
       REDIS_URL: "redis://redis-cache:6379"
       JWT_SECRET: "${JWT_SECRET}"
@@ -42,7 +42,7 @@ services:
       GIN_MODE: "release"
       COOKIE_DOMAIN: "tanok-tech.com"
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:4733/healthz"]
       interval: 30s
       timeout: 5s
       retries: 3

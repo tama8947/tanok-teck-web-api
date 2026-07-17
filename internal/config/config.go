@@ -29,7 +29,7 @@ type AppConfig struct {
 
 func Load() *AppConfig {
 	cfg := &AppConfig{
-		Port:                envOrDefault("PORT", "8080"),
+		Port:                envOrDefault("PORT", "4733"),
 		DatabaseURL:         os.Getenv("DATABASE_URL"),
 		RedisURL:            envOrDefault("REDIS_URL", "redis://localhost:6379"),
 		JWTSecret:           envOrDefault("JWT_SECRET", "fallback-secret-for-development"),

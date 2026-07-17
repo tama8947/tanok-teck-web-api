@@ -89,6 +89,7 @@ func main() {
 			}),
 			h.CaptureLead,
 		)
+		leads.GET("/magnet", h.GetMagnetBySlug)
 		leads.GET("", middleware.JWTAuth(svc), h.ListLeads)
 		leads.GET("/:id", middleware.JWTAuth(svc), h.GetLead)
 	}

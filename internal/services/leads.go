@@ -211,6 +211,18 @@ func (s *Services) GetLeadByID(ctx context.Context, id string) (*models.LeadDeta
 	return &detail, nil
 }
 
+func (s *Services) GetMagnetBySlug(ctx context.Context, slug string) (*models.MagnetInfo, error) {
+	var magnet models.MagnetInfo
+	err := s.DB.QueryRow(ctx,
+		`SELECT id, name, slug FROM "LeadMagnet" WHERE slug = $1`,
+		slug,
+	).Scan(&magnet.ID, &magnet.Name, &magnet.Slug)
+	if err != nil {
+		return nil, fmt.Errorf("magnet not found: %w", err)
+	}
+	return &magnet, nil
+}
+
 func (s *Services) batchEventCounts(ctx context.Context, leadIDs []string) map[string]int {
 	counts := make(map[string]int)
 	for _, id := range leadIDs {

@@ -91,3 +91,19 @@ func (h *Handler) GetLead(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"lead": lead})
 }
+
+func (h *Handler) GetMagnetBySlug(c *gin.Context) {
+	slug := c.Query("slug")
+	if slug == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "slug is required"})
+		return
+	}
+
+	magnet, err := h.Services.GetMagnetBySlug(c.Request.Context(), slug)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Magnet not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"magnet": magnet})
+}

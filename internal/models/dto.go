@@ -153,12 +153,19 @@ type Pagination struct {
 }
 
 type StatsResponse struct {
-	Pageviews      int            `json:"pageviews"`
-	UniqueVisitors int            `json:"uniqueVisitors"`
-	TopPages       []TopPage      `json:"topPages"`
-	TopCountries   []TopCountry   `json:"topCountries"`
-	TopDevices     []TopDevice    `json:"topDevices"`
-	Period         string         `json:"period"`
+	Summary         StatsSummary      `json:"summary"`
+	PageviewsByDate map[string]int    `json:"pageviewsByDate"`
+	TopPages        []TopPage         `json:"topPages"`
+	TopCountries    []TopCountry      `json:"topCountries"`
+	DeviceBreakdown []TopDevice       `json:"deviceBreakdown"`
+}
+
+type StatsSummary struct {
+	TotalPageviews  int    `json:"totalPageviews"`
+	TotalUniqueViews int   `json:"totalUniqueViews"`
+	TotalClicks     int    `json:"totalClicks"`
+	AvgDuration     int    `json:"avgDuration"`
+	Period          string `json:"period"`
 }
 
 type TopPage struct {

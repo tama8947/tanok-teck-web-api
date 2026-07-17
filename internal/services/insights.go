@@ -274,12 +274,18 @@ func (s *Services) GetStats(ctx context.Context, days int) (*models.StatsRespons
 	}
 	since := time.Now().UTC().AddDate(0, 0, -days).Format("2006-01-02")
 
-	var pageviews, uniqueVisitors int
+	var pageviews, uniqueVisitors, totalClicks, avgDuration int
 	s.DB.QueryRow(ctx,
 		`SELECT COALESCE(SUM(pageviews),0), COUNT(DISTINCT "visitorId")
 		 FROM "Event" WHERE "createdAt" >= $1 AND type = 'pageview'`,
 		since,
 	).Scan(&pageviews, &uniqueVisitors)
+
+	s.DB.QueryRow(ctx,
+		`SELECT COALESCE(SUM(clicks),0), COALESCE(AVG("avgDuration"),0)
+		 FROM "DailyStats" WHERE date >= $1`,
+		since,
+	).Scan(&totalClicks, &avgDuration)
 
 	topPages := s.queryTopN(ctx,
 		`SELECT path, COUNT(*) as cnt FROM "Event"
@@ -295,9 +301,14 @@ func (s *Services) GetStats(ctx context.Context, days int) (*models.StatsRespons
 		 GROUP BY device ORDER BY cnt DESC LIMIT 5`, since)
 
 	stats := &models.StatsResponse{
-		Pageviews:      pageviews,
-		UniqueVisitors: uniqueVisitors,
-		Period:         fmt.Sprintf("%dd", days),
+		Summary: models.StatsSummary{
+			TotalPageviews:  pageviews,
+			TotalUniqueViews: uniqueVisitors,
+			TotalClicks:     totalClicks,
+			AvgDuration:     avgDuration,
+			Period:          fmt.Sprintf("%dd", days),
+		},
+		PageviewsByDate: make(map[string]int),
 	}
 	for _, t := range topPages {
 		stats.TopPages = append(stats.TopPages, models.TopPage{Path: t.Key, Pageviews: t.Count})
@@ -306,7 +317,7 @@ func (s *Services) GetStats(ctx context.Context, days int) (*models.StatsRespons
 		stats.TopCountries = append(stats.TopCountries, models.TopCountry{Country: t.Key, Pageviews: t.Count})
 	}
 	for _, t := range topDevices {
-		stats.TopDevices = append(stats.TopDevices, models.TopDevice{Device: t.Key, Pageviews: t.Count})
+		stats.DeviceBreakdown = append(stats.DeviceBreakdown, models.TopDevice{Device: t.Key, Pageviews: t.Count})
 	}
 	return stats, nil
 }

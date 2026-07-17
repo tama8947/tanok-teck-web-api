@@ -310,6 +310,10 @@ func (s *Services) GetStats(ctx context.Context, days int) (*models.StatsRespons
 		},
 		PageviewsByDate: make(map[string]int),
 	}
+
+	pageviewsByDate, _ := s.queryDailyPageviews(ctx, since)
+	stats.PageviewsByDate = pageviewsByDate
+
 	for _, t := range topPages {
 		stats.TopPages = append(stats.TopPages, models.TopPage{Path: t.Key, Pageviews: t.Count})
 	}
@@ -572,6 +576,27 @@ func (s *Services) AnalyzeWithAI(ctx context.Context, query string) (*models.Ana
 	}
 
 	return &models.AnalyzeResponse{Analysis: analysis}, nil
+}
+
+func (s *Services) queryDailyPageviews(ctx context.Context, since string) (map[string]int, error) {
+	result := make(map[string]int)
+	rows, err := s.DB.Query(ctx,
+		`SELECT date, SUM(pageviews)::int FROM "DailyStats" WHERE date >= $1 GROUP BY date ORDER BY date`,
+		since,
+	)
+	if err != nil {
+		return result, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var date string
+		var count int
+		if err := rows.Scan(&date, &count); err == nil {
+			result[date] = count
+		}
+	}
+	return result, nil
 }
 
 var _ = html.EscapeString

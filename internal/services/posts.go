@@ -96,7 +96,7 @@ func (s *Services) GetPostBySlug(ctx context.Context, locale, slug string) (*mod
 		`SELECT id, title, slug, COALESCE(excerpt, ''), content,
 		        COALESCE("coverImage", ''), status,
 		        "publishedAt", "createdAt", "updatedAt",
-		        authorId, locale,
+		        "authorId", locale,
 		        COALESCE("translationGroupId", ''),
 		        COALESCE("metaTitle", ''), COALESCE("metaDescription", ''),
 		        COALESCE("ogImage", ''), COALESCE("generatedBy", ''),

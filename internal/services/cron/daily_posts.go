@@ -7,7 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -52,12 +52,20 @@ func RunDailyGeneration(ctx context.Context, svc *services.Services, opts RunDai
 	}
 	slot := FormatSlotKey(now)
 
+	slog.Info("[cron] daily-posts started",
+		"slot", slot,
+		"force", opts.Force,
+		"dryRun", opts.DryRun,
+	)
+
 	var topic TopicPair
 	if opts.TopicOverride != nil {
 		topic = *opts.TopicOverride
+		slog.Info("[cron] using override topic", "es", topic.ES, "en", topic.EN)
 	} else {
 		picked, err := PickNextTopic(ctx, svc.DB, svc.Config, svc.Redis)
 		if err != nil {
+			slog.Error("[cron] topic selection failed", "slot", slot, "error", err)
 			return &CronRunSummary{
 				Slot:       slot,
 				Status:     "FAILED",
@@ -66,6 +74,7 @@ func RunDailyGeneration(ctx context.Context, svc *services.Services, opts RunDai
 			}
 		}
 		topic = TopicPair{ES: picked.ES, EN: picked.EN}
+		slog.Info("[cron] topic selected", "es", topic.ES, "en", topic.EN)
 	}
 
 	base := &CronRunSummary{
